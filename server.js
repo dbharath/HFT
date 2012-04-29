@@ -32,6 +32,8 @@ var FETCH_INTERVAL = 5000;
 var PRETTY_PRINT_JSON = true;
 var MAX_SIZE = 10;
 
+var PortManager = require("./app_modules/portfolio.js");
+
 ///
 // START OF APPLICATION
 ///
@@ -46,10 +48,11 @@ io.set('log level', 2);
 
 server.listen(PORT);
 
-var tickers = [];
+var tickers = [], test = PortManager.createPort();
 app.get('/:ticker/', function(req, res) {
 	var ticker = req.params.ticker;
 	tickers = tickers.concat(ticker.split("-"));
+	test.addTicker(tickers);
 	res.sendfile(__dirname + '/index.html');
 });
 
@@ -62,19 +65,24 @@ io.sockets.on('connection', function(socket) {
 
 	//Every N seconds
 	var timer = setInterval(function() {
-		get_quote(socket, local_ticker)
+		get_quote(socket, local_ticker);
+		console.log("Check:", test.orderBook);
 	}, FETCH_INTERVAL);
+
+	socket.on("incoming_order", function(order){
+        test.emit("incoming_order", order);	
+	});
 
 	socket.on('disconnect', function () {
 		clearInterval(timer);
 	});
 });
 
+
 function get_quote(p_socket, p_tickers) {
-	var i;
+	var i, prices={};
     for (i in p_tickers) {
 		p_ticker = p_tickers[i];
-		console.log(p_ticker);
 		http.get({
 			host: 'www.google.com',
 			port: 80,
@@ -104,8 +112,12 @@ function get_quote(p_socket, p_tickers) {
 					quote.last_trade_time = data_object[0].lt;
 					quote.dividend = data_object[0].div;
 					quote.yield = data_object[0].yld;
+
+					prices[quote.ticker] = quote.price;
+					test.emit("price_change", prices);
 					
 					p_socket.emit('quote', PRETTY_PRINT_JSON ? JSON.stringify(quote, true, '\t') : JSON.stringify(quote));
+					p_socket.emit('portfolio', JSON.stringify(test.position, true, "\t"));
 				}
 			});
 		});

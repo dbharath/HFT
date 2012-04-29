@@ -19,9 +19,48 @@
                   $(data).show("slide", { direction: "up" }, 250);
                   $(data).effect("highlight", {}, 1500); 
               });
+
+			  socket.on("portfolio", function(data){
+                  var data = $("<pre>" + data + "</pre><hr />");
+                  $("#control div").html(data);
+                  $("html, body").animate({ scrollTop: $(document).height() }, 100);
+                  $(data).show("slide", { direction: "up" }, 250);
+                  $(data).effect("highlight", {}, 1500); 
+
+			  });
+
+
+
+			  $("#submit").click(function(){
+			      var txt = $("#order").val();	  
+				  socket.emit("incoming_order", txt);
+			  });
         });
     </script>
+	<style>
+        #control{
+		    display: block;
+			position: fixed;
+			top: 0;
+			left: 0;
+			width: 600px;
+			max-height: 800px;
+			margin: auto;
+		    font-size: 10px;
+		}
+		#quotes{
+		    display: block;
+			position: fixed;
+			top: 0;
+			right: 0;
+			width: 300px;
+		}
+		</style>
     <body>
+		<div id="control">
+			<input id="order" /><input type="submit" value="Order" id="submit"> 
+			<div> </div>
+		</div>
         <div id="quotes"></div>
     </body>
 </html>
