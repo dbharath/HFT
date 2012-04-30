@@ -1,13 +1,16 @@
 * {
 padding: 0;
 margin: 0;
+font-family: Helvetica Narrow, Helvetica, sans-serif; 
 }
 
 #control{
+border: 1px solid #978;
 display: block;
 position: fixed;
-top: 0;
-left: 0;
+top: 5px;
+left: 5px;
+background: rgba(0,0,0,.1);
 padding: 2%;
 width: 40%;
 margin: auto;
@@ -19,6 +22,7 @@ width: 100px;
 }
 #control td{
 padding: 4px;
+background: rgba(255,133,122, .3);
 }
 #quotes{
 display: block;
@@ -39,4 +43,5 @@ z-index: 65535;
 padding: 15px;
 }
 .hide, .order-id{display:none;}
+hr{margin: 4px 0;}
 
