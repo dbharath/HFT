@@ -82,7 +82,11 @@
 
 			  $("#submit").click(function(){
 			      var order = $("#order").serializeObject();	  
-				  socket.emit("incoming_order", order);
+				  if (order.ticker && order.size && order.price && order.type) {
+				      socket.emit("incoming_order", order);
+				  } else {
+				      alert("Fill all the fields to order, please.");	  
+				  }
 			  });
 
 			  $("body").click(function(){
