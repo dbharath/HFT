@@ -1,0 +1,128 @@
+<!doctype html> 
+<html lang="en"> 
+    <head>
+        <meta charset="utf-8">
+        <title>
+            Quote Stream
+        </title>
+    	<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.js"></script>
+    	<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.8.18/jquery-ui.js"></script>
+        <script type="text/javascript" src="/socket.io/socket.io.js"></script>
+        <script type="text/javascript" src="/underscore-min.js"></script>
+
+        <link href="/style.css" rel="stylesheet" type="text/css">
+    </head>
+    <script type="text/javascript">
+	$.fn.serializeObject = function()
+	{
+		var o = {};
+		var a = this.serializeArray();
+		$.each(a, function() {
+			var value = Number(this.value) || this.value || "";
+			if (isNaN(value)) value = this.value;
+			if (o[this.name] !== undefined) {
+				if (!o[this.name].push) {
+					o[this.name] = [o[this.name]];
+				}
+				o[this.name].push(value || '');
+			} else {
+				o[this.name] = value || '';
+			}
+		});
+		return o;
+	};
+        $(document).ready(function() {
+            var socket = io.connect("http://localhost:4000");
+               
+			  socket.on('tickers', function(data){
+				  var ticker, o, tickers= eval(data);
+				  while(ticker = tickers.shift()) {
+				      o = '<option value="'+ticker+'">'+ticker+'</option>';
+				      $("#ticker").append(o);
+				  }
+
+				  $("#order").removeClass("hide");
+			      	  
+			  });
+
+              socket.on('quote', function(data) {
+                  var data = $("<pre>" + data + "</pre><hr />");
+                  $("#quotes").append(data);
+                  $("html, body").animate({ scrollTop: $(document).height() }, 100);
+                  $(data).show("slide", { direction: "up" }, 250);
+                  $(data).effect("highlight", {}, 1500); 
+              });
+
+			  socket.on("portfolio", function(data){
+				  eval('data=('+data+')'); 
+                  var template = _.template($("#portfolio-template").html());
+                  $("#position-summary").html(template(data.port));
+                  template = _.template($("#orderbook-template").html());
+                  $("#order-summary").html(template(data.port.orderBook));
+			  });
+
+
+
+			  $("#submit").click(function(){
+			      var order = $("#order").serializeObject();	  
+				  socket.emit("incoming_order", order);
+			  });
+        });
+    </script>
+    <body>
+		<div id="control" class="hide">
+			<form id="order">
+				<p><span>Ticker:</span> 
+				  <select name="ticker" id="ticker">
+				  </select>
+				</p>
+				<p><span>Order Type:</span> 
+				  <select name="type">
+                     <option value="LIMIT">limit</option>
+                     <option value="STOP">stop</option>
+                     <option value="MARKET">market</option>
+				  </select>
+				</p>
+
+				<p>
+				  <span>Long/Buy:</span><input type="radio" name="buy" value="true">
+				  <span>Short/Sell:</span><input type="radio" name="buy" value="false">
+				</p>
+				<p><span>Shares:</span><input type="number" name="size" min="1"></p>
+				<p><span>Price:</span><input type="number" name="price" min="1"/></p>
+
+				<input id="submit" type="button" value="Place Order">
+
+				</form>
+			<div id="position-summary"> </div>
+			<div id="order-summary"> </div>
+		</div>
+        <div id="quotes"></div>
+		<script type="text/template" id="portfolio-template">
+			<h2>Position Summary:</h2>
+			<table>
+				<% _.each(position, function(pos, ticker) { 
+					%> <tr>
+					<td><%= ticker %>:</td>
+					<td><%= pos %></td>
+					</tr> <% }); %>
+	        </table> 
+		</script>
+
+		<script type="text/template" id="orderbook-template">
+			<h2>Open Orders:</h2>
+			<table>
+				<% _.each(orders, function(order) { 
+					%> <tr>
+						<td><strong><%= order.ticker %></strong></td>
+					    <td>Size: <%= order.size %></td>
+					    <td>Price: <%= order.price %></td>
+					    <td>Type: <%= order.type %></td>
+					</tr> <% }); %>
+	        </table> 
+		</script>
+
+
+
+    </body>
+</html>

@@ -40,6 +40,7 @@ var PortManager = require("./app_modules/portfolio.js");
 var express = require('express');
 var http = require('http');
 var io = require('socket.io');
+var _ = require("underscore")._;
 
 var app = express();
 var server = http.createServer(app);
@@ -49,19 +50,38 @@ io.set('log level', 2);
 server.listen(PORT);
 
 var tickers = [], test = PortManager.createPort();
-app.get('/:ticker/', function(req, res) {
-	var ticker = req.params.ticker;
-	tickers = tickers.concat(ticker.split("-"));
-	test.addTicker(tickers);
+
+app.use(express.static(__dirname + '/media'));
+app.use(express.bodyParser());
+
+app.get('/', function(req, res){
 	res.sendfile(__dirname + '/index.html');
+});
+
+app.post('/', function(req, res){
+	var ticker = req.body.tickers;
+	ticker = ticker.replace(/^\s+|\s+$/, "");
+	tickers = tickers.concat(ticker.split(/\s*,\s*/));
+	res.redirect('/trade/');
+});
+
+app.get('/trade/', function(req, res) {
+	if (tickers.length){
+	    res.sendfile(__dirname + '/trade.html');
+	} else {
+	    res.redirect('/');
+	}
 });
 
 io.sockets.on('connection', function(socket) {
 	var local_ticker = tickers.splice(0, MAX_SIZE);
+	test.addTicker(local_ticker);
 	tickers.length = 0;
 
 	//Run the first time immediately
 	get_quote(socket, local_ticker);
+	//Tell the client about tickers 
+	socket.emit("tickers", local_ticker);
 
 	//Every N seconds
 	var timer = setInterval(function() {
@@ -78,6 +98,10 @@ io.sockets.on('connection', function(socket) {
 		test.processOrder(order);
 	});
 
+	socket.on("cancel_order", function(orderId){
+        test.orderBook.cancel(orderId);	
+	});
+
 	socket.on('disconnect', function () {
 		clearInterval(timer);
 	});
@@ -85,6 +109,7 @@ io.sockets.on('connection', function(socket) {
 	test.on("change", function(change){
 		socket.emit("portfolio", JSON.stringify(change, true, "\t"));	
 	});
+
 });
 
 
