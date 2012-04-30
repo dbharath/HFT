@@ -66,15 +66,24 @@ io.sockets.on('connection', function(socket) {
 	//Every N seconds
 	var timer = setInterval(function() {
 		get_quote(socket, local_ticker);
-		console.log("Check:", test.orderBook);
 	}, FETCH_INTERVAL);
 
-	socket.on("incoming_order", function(order){
-        test.emit("incoming_order", order);	
+	socket.on("incoming_order", function(order_str){
+		// doing something very dangerous here
+		try{
+		    var order = eval(order_str);
+		} catch (err) {
+		    var order = order_str;
+		}
+		test.processOrder(order);
 	});
 
 	socket.on('disconnect', function () {
 		clearInterval(timer);
+	});
+
+	test.on("change", function(change){
+		socket.emit("portfolio", JSON.stringify(change, true, "\t"));	
 	});
 });
 
@@ -103,7 +112,7 @@ function get_quote(p_socket, p_tickers) {
 						return;
 					}
 										
-					var quote = {};
+					var quote = {}, last;
 					quote.ticker = data_object[0].t;
 					quote.exchange = data_object[0].e;
 					quote.price = data_object[0].l_cur;
@@ -114,10 +123,13 @@ function get_quote(p_socket, p_tickers) {
 					quote.yield = data_object[0].yld;
 
 					prices[quote.ticker] = quote.price;
-					test.emit("price_change", prices);
+					last = test.LastPrice[quote.ticker];
+
+					// if (last && last != Number(quote.price)){
+					    test.priceUpdate(prices);
+					// }
 					
 					p_socket.emit('quote', PRETTY_PRINT_JSON ? JSON.stringify(quote, true, '\t') : JSON.stringify(quote));
-					p_socket.emit('portfolio', JSON.stringify(test.position, true, "\t"));
 				}
 			});
 		});

@@ -1,15 +1,17 @@
 var evt = require('events').EventEmitter;
 var _ = require("underscore")._;
+var ById = {}; 
 var Order = {
-	book: null, 
+	bookId: null, 
     ticker: null, 
 	type: null,
     buy: true,
 	size: null, 
 	price: null, 
     limit: function(curr_price) {
-		var res={};
-	    if (this.price>=curr_price){
+		var f, res={};
+		f = this.buy ? 1 : -1;
+	    if (this.price*f >=curr_price*f){
 			 res = this.execute(curr_price);
 		} else {
 		     res[this.ticker] = 0;
@@ -50,8 +52,9 @@ var Order = {
 		} else {
 		    status = "filled"
 		}
-		var self = this;
-        this.book.emit("destory", { order: self, status: status, id: self.id });    	
+		var self = this, book;
+		book = ById[this.bookId];
+        book.emit("destory", { order: self, status: status, id: self.id });    	
 		for (k in self){
 		    delete self[k]
 		}
@@ -65,19 +68,23 @@ var OrderBook = new evt;
 
 _.extend(OrderBook, {
     
-	init: function(port){
-	    this.portfolio = port;
+	init: function(portId){
+		var id; 
+		id = _.uniqueId("OrderBook_");
+		ById[id] = this;
+		this.id = id;
+	    this.portfolioId = portId;
 		this.byOrderId = {};
 		this.orders = [];
 		this.count = 0;
-		this.Idcount = 0;
 		this.on("neworder", function(order){
-			order.book = this;
+			// max number of pending orders
+			if (this.orders.length>100) return this;
+			order.bookId = this.id;
+			order.id = _.uniqueId("Order_"); 
 		    this.orders.unshift(order);
 			this.count ++;
-			this.Idcount ++;
-			this.byOrderId[this.Idcount] = order;
-			order.id = this.Idcount;
+			this.byOrderId[order.id] = order;
 			return this;
 		});
 		this.on("destory", function(msg){
@@ -105,9 +112,20 @@ _.extend(OrderBook, {
 			    res = undefined;
 			}
 			if (res.ticker) {
-			    this.portfolio.emit("order_filled", res);
+			    this.portfolio().emit("order_filled", res);
 			}
 		}
+	}, 
+
+	cancel: function(orderId) {
+	    var order = this.byOrderId(orderId);
+		if (order instanceof Order) {
+		    order.destroy();
+		}
+	}, 
+
+	portfolio: function(){
+        return (ById[this.portfolioId])	
 	}
 
 
@@ -126,7 +144,10 @@ _.extend(Portfolio, {
 	}, 
 
 	init: function(tickers, config, position) {
-		var name, pos;
+		var name, pos, id;
+		id = _.uniqueId("Portfolio_");
+		ById[id] = this;
+		this.id = id;
 		if (config) _.extend(this.config, config);
 	    if (tickers) {
 			this.addTicker(tickers);
@@ -148,12 +169,9 @@ _.extend(Portfolio, {
 		}
 
 		this.LastPrice = {};
-		this.orderBook = Object.create(OrderBook).init(this);
-		_.bind(this.priceUpdate, this);
-
-		this.on("price_change", this.priceUpdate);
-		this.on("incoming_order", this.processOrder);
+		this.orderBook = Object.create(OrderBook).init(id);
 		this.on("order_filled", this.orderFilled);
+
 
 		return this
 	}, 
@@ -169,7 +187,13 @@ _.extend(Portfolio, {
 				this.position[ticker] = 0;
 		    }
 		}
-
+        
+		this.emit("change", {
+		    event: "tickersadded", 
+			port : this, 
+			data : tickers 
+		});
+        
 		return this
 	}, 
 
@@ -184,6 +208,12 @@ _.extend(Portfolio, {
 				delete this.position[ticker];
 		    }
 		}
+
+		this.emit("change", {
+		    event: "tickersremoved", 
+			port : this, 
+			data : tickers 
+		});
 
 		return this
 	},
@@ -202,6 +232,12 @@ _.extend(Portfolio, {
         
 		this.orderBook.process(prices);
 		_.extend(this.LastPrice, prices);
+
+		this.emit("change", {
+		    event: "pricechange", 
+			port : this, 
+			data : prices
+		});
 
 
 		return this
@@ -238,12 +274,23 @@ _.extend(Portfolio, {
 
 		}
 
+		this.emit("change", {
+		    event: "neworder", 
+		    port : this, 
+		    data : order
+		});
+
 		return this
 	}, 
 
 	orderFilled: function(msg) {
 	    this.position[msg.ticker] += msg.shares;
 		this.position.cash += msg.cash;
+		this.emit("change", {
+		    event: "orderfilled", 
+			data : msg, 
+			port : this
+		});
 	}
 
 });
@@ -255,6 +302,9 @@ var createOrder = function(details){
 };
 
 _.extend(exports, {
+
+	ById : ById, 
+
     Portfolio : Portfolio,
 
 	Order: Order,

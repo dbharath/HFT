@@ -10,6 +10,24 @@
         <script type="text/javascript" src="http://localhost:4000/socket.io/socket.io.js"></script>
     </head>
     <script type="text/javascript">
+	$.fn.serializeObject = function()
+	{
+		var o = {};
+		var a = this.serializeArray();
+		$.each(a, function() {
+			var value = Number(this.value) || this.value || "";
+			if (isNaN(value)) value = this.value;
+			if (o[this.name] !== undefined) {
+				if (!o[this.name].push) {
+					o[this.name] = [o[this.name]];
+				}
+				o[this.name].push(value || '');
+			} else {
+				o[this.name] = value || '';
+			}
+		});
+		return o;
+	};
         $(document).ready(function() {
             var socket = io.connect("http://localhost:4000");
               socket.on('quote', function(data) {
@@ -32,8 +50,8 @@
 
 
 			  $("#submit").click(function(){
-			      var txt = $("#order").val();	  
-				  socket.emit("incoming_order", txt);
+			      var order = $("#order").serializeObject();	  
+				  socket.emit("incoming_order", order);
 			  });
         });
     </script>
@@ -43,22 +61,51 @@
 			position: fixed;
 			top: 0;
 			left: 0;
-			width: 600px;
-			max-height: 800px;
+			width: 50%;
 			margin: auto;
-		    font-size: 10px;
+		    font-size: 8px;
+		}
+		#control p{
+		    font-size: 12px;
+		}
+		#control span{
+		    display: inline-block;
+			width: 100px;
 		}
 		#quotes{
 		    display: block;
-			position: fixed;
-			top: 0;
-			right: 0;
-			width: 300px;
+			float: right;
+			width: 50%; 
 		}
 		</style>
     <body>
 		<div id="control">
-			<input id="order" /><input type="submit" value="Order" id="submit"> 
+			<form id="order">
+				<p><span>Ticker:</span> 
+				  <select name="ticker">
+                     <option value="AAPL">AAPL</option>
+                     <option value="MSFG">MSFG</option>
+                     <option value="GOOG">GOOG</option>
+				  </select>
+				</p>
+				<p><span>Order Type:</span> 
+				  <select name="type">
+                     <option value="LIMIT">limit</option>
+                     <option value="STOP">stop</option>
+                     <option value="MARKET">market</option>
+				  </select>
+				</p>
+
+				<p>
+				  <span>Long/Buy:</span><input type="radio" name="buy" value="true">
+				  <span>Short/Sell:</span><input type="radio" name="buy" value="false">
+				</p>
+				<p><span>Shares:</span><input type="number" name="size" min="1"></p>
+				<p><span>Price:</span><input type="number" name="price" min="1"/></p>
+
+				<input id="submit" type="button" value="Place Order">
+
+				</form>
 			<div> </div>
 		</div>
         <div id="quotes"></div>
