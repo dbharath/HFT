@@ -59,6 +59,21 @@
                   $("#position-summary").html(template(data.port));
                   template = _.template($("#orderbook-template").html());
                   $("#order-summary").html(template(data.port.orderBook));
+				  if (data.event == "orderfilled") {
+                      template = _.template($("#filled-template").html());
+					  data.data.buy = data.data.buy ? "Bought" : "Sold";
+                      $("#msg").html(template(data.data)).fadeIn();
+					  var tid = setTimeout(function(){
+						      $("#msg").fadeOut();
+							  clearTimeout(tid);
+						  }, 3000);
+				  }
+				  $(".cancel").unbind();
+				  $(".cancel").click(function(){
+					  var id = $(this).parent().find(".order-id:first").text();
+					  socket.emit("cancel_order", id);		  
+				  });
+
 			  });
 
 
@@ -67,9 +82,15 @@
 			      var order = $("#order").serializeObject();	  
 				  socket.emit("incoming_order", order);
 			  });
+
+			  $("body").click(function(){
+			      $("#msg").fadeOut();	  
+			  });
+
         });
     </script>
     <body>
+		<div id="msg" class="hide"> </div>
 		<div id="control" class="hide">
 			<form id="order">
 				<p><span>Ticker:</span> 
@@ -118,9 +139,21 @@
 					    <td>Size: <%= order.size %></td>
 					    <td>Price: <%= order.price %></td>
 					    <td>Type: <%= order.type %></td>
+						<td>
+							<button class="cancel">Cancel</button>
+						    <data class="order-id"><%= order.id %></data>
+					    </td>
 					</tr> <% }); %>
 	        </table> 
 		</script>
+
+		<script type="text/template" id="filled-template">
+			<p>
+               <%= buy %> <%= shares %> shares of <%= ticker %>, @
+			   $<%= price %>
+			</p>
+		</script>
+
 
 
 

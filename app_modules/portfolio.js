@@ -36,12 +36,13 @@ var Order = {
 	},
 	execute: function(price){
 		var f = this.buy ? 1 : -1, res={}, cc;
-		res.shares = this.size * f; 
+		res.shares = this.size; 
+		res.buy = this.buy;
 		res.cash = price * this.size * -1 * f;
-		cc = this.commition();
+		cc = this.commission();
 		res.cash -= cc;
 		res.price = price
-		res.commition = cc;
+		res.commission = cc;
 		res.ticker = this.ticker;
 		this.destroy("filled");
 		return res
@@ -59,7 +60,7 @@ var Order = {
 		    delete self[k]
 		}
 	}, 
-	commition: function(){
+	commission: function(){
         return 0	
 	}
 };
@@ -117,11 +118,14 @@ _.extend(OrderBook, {
 		}
 	}, 
 
-	cancel: function(orderId) {
-	    var order = this.byOrderId(orderId);
-		if (order instanceof Order) {
+	cancel: function(orderId) { 
+		if (orderId.split("_")[0] !== "Order") return;
+	    var order = this.byOrderId[orderId];
+		if (order) {
 		    order.destroy();
 		}
+
+		return this
 	}, 
 
 	portfolio: function(){
