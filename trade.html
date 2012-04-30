@@ -49,7 +49,7 @@
 
               socket.on('quote', function(data) {
                   var data = $("<pre>" + data + "</pre><hr />");
-                  $("#quotes").html(data);
+                  $("#quotes").append(data);
                   $("html, body").animate({ scrollTop: $(document).height() }, 100);
                   $(data).show("slide", { direction: "up" }, 250);
                   $(data).effect("highlight", {}, 1500); 
