@@ -74,10 +74,11 @@ app.get('/trade/', function(req, res) {
 	}
 });
 
+
 io.sockets.on('connection', function(socket) {
 	var local_ticker = tickers.splice(0, MAX_SIZE);
 	test.addTicker(local_ticker);
-	tickers.length = 0;
+	// tickers.length = 0;
 
 	//Run the first time immediately
 	get_quote(socket, local_ticker);

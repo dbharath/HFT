@@ -36,7 +36,7 @@ var Order = {
 	},
 	execute: function(price){
 		var f = this.buy ? 1 : -1, res={}, cc;
-		res.shares = this.size; 
+		res.shares = this.size * f; 
 		res.buy = this.buy;
 		res.cash = price * this.size * -1 * f;
 		cc = this.commission();

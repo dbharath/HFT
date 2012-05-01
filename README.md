@@ -5,6 +5,8 @@
 This app is forked from [Quote-Stream](https://github.com/nodesocket/quote-stream). It pushes realtime stock quotes to client side, listens and handles realtime client side orders. Currently, three type of orders are supported: limit, stop and market. API calls are also supported (through web sockets). 
 
 ## Current Stage
+On top of Quote-Stream, I added mutiple tickers support. Also, a baseline structure of Portfolio, OrderBook objects are created. Client-side rendering is done through underscore templates. 
+
 Shaky Trading desk is shaky. This is my first node application, so it is expected to be buggy. 
 
 ## Next Step
