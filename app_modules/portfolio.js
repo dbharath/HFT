@@ -61,7 +61,7 @@ var Order = {
 		}
 	}, 
 	commission: function(){
-        return 0	
+        return 4	
 	}
 };
 
@@ -82,7 +82,7 @@ _.extend(OrderBook, {
 			// max number of pending orders
 			if (this.orders.length>100) return this;
 			order.bookId = this.id;
-			order.id = _.uniqueId("Order_"); 
+			order.id = order.tracker || _.uniqueId("Order_"); 
 		    this.orders.unshift(order);
 			this.count ++;
 			this.byOrderId[order.id] = order;
@@ -96,6 +96,8 @@ _.extend(OrderBook, {
 				delete this.byOrderId[String(msg.id)]
 			}
 		});
+
+		this.on("cancel_order", this.cancel);
 
 		return this;
 	
@@ -119,13 +121,12 @@ _.extend(OrderBook, {
 	}, 
 
 	cancel: function(orderId) { 
-		if (orderId.split("_")[0] !== "Order") return;
 	    var order = this.byOrderId[orderId];
 		if (order) {
 		    order.destroy();
 		}
 
-		return this
+		return orderId
 	}, 
 
 	portfolio: function(){
@@ -175,6 +176,8 @@ _.extend(Portfolio, {
 		this.LastPrice = {};
 		this.orderBook = Object.create(OrderBook).init(id);
 		this.on("order_filled", this.orderFilled);
+		this.on("incoming_order", this.processOrder);
+		this.on("cancel_order", this.cancel);
 
 
 		return this
@@ -295,6 +298,18 @@ _.extend(Portfolio, {
 			data : msg, 
 			port : this
 		});
+	}, 
+
+	cancel : function(orderId) {
+
+        this.orderBook.cancel(orderId);
+
+		this.emit("change", {
+		    event: "order_canceled", 
+			data : orderId, 
+			port : this
+		});
+
 	}
 
 });

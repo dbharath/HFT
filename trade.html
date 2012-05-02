@@ -58,15 +58,24 @@
 			  socket.on("portfolio", function(data){
 				  eval('data=('+data+')'); 
                   var template = _.template($("#portfolio-template").html());
+				  var value=data.port.position.cash;
+				  for (name in data.port.position) {
+				      if (name != "cash") {
+					      value += data.port.position[name] * data.port.LastPrice[name]
+					  }
+				  }
+				  $("#networth").text(value);
                   $("#position-summary").html(template(data.port));
                   template = _.template($("#orderbook-template").html());
                   $("#order-summary").html(template(data.port.orderBook));
 				  if (data.event == "orderfilled") {
                       template = _.template($("#filled-template").html());
 					  data.data.buy = data.data.buy ? "Bought" : "Sold";
-                      $("#msg").html(template(data.data)).fadeIn();
+                      $("#msg").append(template(data.data)).fadeIn();
 					  var tid = setTimeout(function(){
-						      $("#msg").fadeOut();
+						  $("#msg").fadeOut(function(){
+							      $("#msg").empty();
+							  });
 							  clearTimeout(tid);
 						  }, 3000);
 				  }
@@ -99,6 +108,7 @@
 		<div id="msg" class="hide"> </div>
 		<div id="control" class="hide">
 		<h1>Now you can play around. </h1>
+		<h2>Net worth: <span id="networth"></span></h2>
 		<hr />
 			<form id="order">
 				<p><span>Ticker:</span> 

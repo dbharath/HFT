@@ -28,6 +28,7 @@
 // CONFIGURATION SETTINGS
 ///
 var PORT = 4000;
+var API_PORT = 5000;
 var FETCH_INTERVAL = 15000;
 var PRETTY_PRINT_JSON = true;
 var MAX_SIZE = 10;
@@ -40,6 +41,7 @@ var PortManager = require("./app_modules/portfolio.js");
 var express = require('express');
 var http = require('http');
 var io = require('socket.io');
+var ws = require("websocket-server");
 var _ = require("underscore")._;
 
 
@@ -74,11 +76,11 @@ app.get('/trade/', function(req, res) {
 	}
 });
 
-
+// for web client
 io.sockets.on('connection', function(socket) {
 	var local_ticker = tickers.splice(0, MAX_SIZE);
 	test.addTicker(local_ticker);
-	// tickers.length = 0;
+	tickers.length = 0;
 
 	//Run the first time immediately
 	get_quote(socket, local_ticker);
@@ -91,9 +93,8 @@ io.sockets.on('connection', function(socket) {
 	}, FETCH_INTERVAL);
 
 	socket.on("incoming_order", function(order_str){
-		// doing something very dangerous here
 		try{
-		    var order = eval(order_str);
+		    var order = JSON.parse(order_str);
 		} catch (err) {
 		    var order = order_str;
 		}
@@ -101,7 +102,7 @@ io.sockets.on('connection', function(socket) {
 	});
 
 	socket.on("cancel_order", function(orderId){
-        test.orderBook.cancel(orderId);	
+        test.cancel(orderId);	
 	});
 
 	socket.on('disconnect', function () {
@@ -109,10 +110,42 @@ io.sockets.on('connection', function(socket) {
 	});
 
 	test.on("change", function(change){
-		socket.emit("portfolio", JSON.stringify(change, true, "\t"));	
+		var msg = JSON.stringify(change);
+		socket.emit("portfolio", msg);	
+		api_server.broadcast(msg);
 	});
 
 });
+
+var api_server = ws.createServer();
+
+api_server.addListener("connection", function(connection){
+
+	  if (!(test && test.tickers.length)) {
+		  api_server.send(connection.id, 
+			  "No portfolio in existence, connection will close.");
+	      connection.close();
+		  return 
+	  }
+
+      var allowing = /^(incoming_order|cancel_order)$/;
+
+	  connection.addListener("message", function(msg){
+
+		  msg = JSON.parse(msg);
+		  if (msg === Object(msg)) {
+			  for (key in msg){
+				  if (!allowing.test(key)) continue;
+				  test.emit(key, msg[key]);
+			  }
+          }
+ 
+	  });
+
+});
+
+api_server.listen(API_PORT);
+
 
 
 function get_quote(p_socket, p_tickers) {
@@ -142,7 +175,8 @@ function get_quote(p_socket, p_tickers) {
 					var quote = {}, last;
 					quote.ticker = data_object[0].t;
 					quote.exchange = data_object[0].e;
-					quote.price = data_object[0].l_cur;
+					// for testin purposes randomize the prices
+					quote.price = Number(data_object[0].l_cur) || Number(data_object[0].l_cur.replace(/[^\d]*/, ""));
 					quote.change = data_object[0].c;
 					quote.change_percent = data_object[0].cp;
 					quote.last_trade_time = data_object[0].lt;
