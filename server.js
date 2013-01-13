@@ -62,6 +62,7 @@ app.get('/', function(req, res){
 });
 
 app.post('/', function(req, res){
+   	console.log(req.body);
 	var ticker = req.body.tickers;
 	ticker = ticker.replace(/^\s+|\s+$/, "");
 	tickers = tickers.concat(ticker.split(/\s*,\s*/));
@@ -157,6 +158,7 @@ function get_quote(p_socket, p_tickers) {
 			port: 80,
 			path: '/finance/info?client=ig&q=' + p_ticker
 		}, function(response) {
+                        console.log(response);
 			response.setEncoding('utf8');
 			var data = "";
 						

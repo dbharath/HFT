@@ -34,7 +34,7 @@
 		return o;
 	};
         $(document).ready(function() {
-            var socket = io.connect("http://localhost:4000");
+            var socket = io.connect("http://50.17.88.172:4000");
                
 			  socket.on('tickers', function(data){
 				  var ticker, o, tickers= eval(data);
