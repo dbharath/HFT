@@ -28,7 +28,7 @@ var Order = {
 		} else {
 		    res[this.ticker] = 0;
 			res.cash = 0;
-		}
+		} 
 		return res
 	}, 
 	market: function(curr_price){
