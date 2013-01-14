@@ -1,4 +1,4 @@
-# Shaky Trading Desk
+# High frequency trading
 
 ### A node.js application that allows you to setup your own virtual trading platform. 
 
@@ -7,7 +7,5 @@ This app is forked from [Quote-Stream](https://github.com/nodesocket/quote-strea
 ## Current Stage
 On top of Quote-Stream, I added mutiple tickers support. Also, a baseline structure of Portfolio, OrderBook objects are created. Client-side rendering is done through underscore templates. 
 
-Shaky Trading desk is shaky. This is my first node application, so it is expected to be buggy. 
-
 ## Next Step
-I will continue to refine it, and add margin accounts into play. Then, I will write another leg of the app, an automated trading algorithum example to communicate with Shaky Trading Desk (possibly in R), to allow for some quick and free quant strategy testing. 
+I will continue to refine it, and add margin accounts into play. Then, I will write another leg of the app, an automated trading algorithum example to communicate with HFT, to allow for some quick and free quant strategy testing. 
